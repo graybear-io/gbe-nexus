@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/transport",
+    "crates/transport-redis",
+    "crates/state-store",
+    "crates/state-store-redis",
+    "crates/sweeper",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/graybear-io/gbe-transport"
+
+[workspace.dependencies]
+# Internal crates
+gbe-transport = { path = "crates/transport" }
+gbe-transport-redis = { path = "crates/transport-redis" }
+gbe-state-store = { path = "crates/state-store" }
+gbe-state-store-redis = { path = "crates/state-store-redis" }
+
+# Async
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Types
+bytes = "1"
+ulid = "1"
+
+# Encoding
+base64 = "0.22"
+
+# Error handling
+thiserror = "2"

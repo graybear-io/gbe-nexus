@@ -1,0 +1,15 @@
+[package]
+name = "gbe-sweeper"
+description = "Sweeper and archiver for GBE transport retention"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+gbe-transport.workspace = true
+gbe-state-store.workspace = true
+async-trait.workspace = true
+serde = { workspace = true }
+thiserror.workspace = true
+tokio.workspace = true

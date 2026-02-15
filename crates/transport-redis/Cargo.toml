@@ -1,0 +1,17 @@
+[package]
+name = "gbe-transport-redis"
+description = "Redis Streams transport backend for GBE"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+gbe-transport.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+redis = { version = "0.29", features = ["tokio-comp", "streams"] }
