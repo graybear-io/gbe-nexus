@@ -1,6 +1,6 @@
 [package]
-name = "gbe-sweeper"
-description = "Sweeper and archiver for GBE transport retention"
+name = "gbe-watcher"
+description = "Watcher and archiver for GBE transport retention"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

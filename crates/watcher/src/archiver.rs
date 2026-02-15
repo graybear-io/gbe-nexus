@@ -10,7 +10,7 @@ use tokio_util::sync::CancellationToken;
 use gbe_transport::Transport;
 
 use crate::archive_writer::ArchiveWriter;
-use crate::error::SweeperError;
+use crate::error::WatcherError;
 
 #[derive(Debug, Clone)]
 pub struct ArchiverConfig {
@@ -68,12 +68,12 @@ impl Archiver {
         config: ArchiverConfig,
         writer: Arc<dyn ArchiveWriter>,
         transport: Arc<dyn Transport>,
-    ) -> Result<Self, SweeperError> {
+    ) -> Result<Self, WatcherError> {
         let client = redis::Client::open(config.redis_url.as_str())
-            .map_err(|e| SweeperError::Redis(e.to_string()))?;
+            .map_err(|e| WatcherError::Redis(e.to_string()))?;
         let conn = redis::aio::ConnectionManager::new(client)
             .await
-            .map_err(|e| SweeperError::Redis(e.to_string()))?;
+            .map_err(|e| WatcherError::Redis(e.to_string()))?;
 
         let host = hostname::get()
             .map(|h| h.to_string_lossy().to_string())
@@ -93,7 +93,7 @@ impl Archiver {
         &self.config
     }
 
-    pub async fn run(&self, token: CancellationToken) -> Result<(), SweeperError> {
+    pub async fn run(&self, token: CancellationToken) -> Result<(), WatcherError> {
         for stream in &self.config.streams {
             self.ensure_group(&subject_to_key(&stream.subject)).await?;
         }
@@ -136,7 +136,7 @@ impl Archiver {
     pub async fn process_batch(
         &self,
         stream: &ArchivalStream,
-    ) -> Result<BatchReport, SweeperError> {
+    ) -> Result<BatchReport, WatcherError> {
         let stream_key = subject_to_key(&stream.subject);
         let mut batch_lines: Vec<String> = Vec::new();
         let mut entry_ids: Vec<String> = Vec::new();
@@ -191,7 +191,7 @@ impl Archiver {
                 Err(e) => {
                     // Timeout (nil reply) is normal
                     if !is_timeout_nil(&e) {
-                        return Err(SweeperError::Redis(e.to_string()));
+                        return Err(WatcherError::Redis(e.to_string()));
                     }
                     // On timeout with no messages, return empty
                     if batch_lines.is_empty() {
@@ -212,14 +212,14 @@ impl Archiver {
         for line in &batch_lines {
             encoder
                 .write_all(line.as_bytes())
-                .map_err(|e| SweeperError::Writer(e.to_string()))?;
+                .map_err(|e| WatcherError::Writer(e.to_string()))?;
             encoder
                 .write_all(b"\n")
-                .map_err(|e| SweeperError::Writer(e.to_string()))?;
+                .map_err(|e| WatcherError::Writer(e.to_string()))?;
         }
         let compressed = encoder
             .finish()
-            .map_err(|e| SweeperError::Writer(e.to_string()))?;
+            .map_err(|e| WatcherError::Writer(e.to_string()))?;
 
         let path = make_archive_path(&stream.domain);
         let bytes_written = compressed.len() as u64;
@@ -236,7 +236,7 @@ impl Archiver {
             }
             cmd.query_async::<()>(&mut self.conn.clone())
                 .await
-                .map_err(|e| SweeperError::Redis(e.to_string()))?;
+                .map_err(|e| WatcherError::Redis(e.to_string()))?;
         }
 
         // Publish archival event
@@ -262,7 +262,7 @@ impl Archiver {
         })
     }
 
-    async fn ensure_group(&self, stream_key: &str) -> Result<(), SweeperError> {
+    async fn ensure_group(&self, stream_key: &str) -> Result<(), WatcherError> {
         let result: Result<String, redis::RedisError> = redis::cmd("XGROUP")
             .arg("CREATE")
             .arg(stream_key)
@@ -275,7 +275,7 @@ impl Archiver {
         match result {
             Ok(_) => Ok(()),
             Err(e) if e.to_string().contains("BUSYGROUP") => Ok(()),
-            Err(e) => Err(SweeperError::Redis(e.to_string())),
+            Err(e) => Err(WatcherError::Redis(e.to_string())),
         }
     }
 }

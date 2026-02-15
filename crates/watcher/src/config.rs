@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
-pub struct SweeperConfig {
+pub struct WatcherConfig {
     pub redis_url: String,
     pub interval: Duration,
     pub lock_ttl: Duration,
@@ -11,7 +11,7 @@ pub struct SweeperConfig {
     pub streams: Vec<StreamRetention>,
 }
 
-impl Default for SweeperConfig {
+impl Default for WatcherConfig {
     fn default() -> Self {
         Self {
             redis_url: "redis://127.0.0.1:6379".to_string(),

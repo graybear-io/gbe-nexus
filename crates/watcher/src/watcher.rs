@@ -7,14 +7,14 @@ use tokio_util::sync::CancellationToken;
 use gbe_state_store::{ScanFilter, ScanOp, StateStore};
 use gbe_transport::Transport;
 
-use crate::config::SweeperConfig;
-use crate::error::SweeperError;
+use crate::config::WatcherConfig;
+use crate::error::WatcherError;
 use crate::lock::DistributedLock;
 
 const TERMINAL_STATES: &[&str] = &["completed", "failed", "cancelled"];
 
-pub struct Sweeper {
-    config: SweeperConfig,
+pub struct Watcher {
+    config: WatcherConfig,
     transport: Arc<dyn Transport>,
     store: Arc<dyn StateStore>,
     lock: DistributedLock,
@@ -28,15 +28,15 @@ pub struct SweepReport {
     pub entries_trimmed: u64,
 }
 
-impl Sweeper {
+impl Watcher {
     pub async fn new(
-        config: SweeperConfig,
+        config: WatcherConfig,
         transport: Arc<dyn Transport>,
         store: Arc<dyn StateStore>,
-    ) -> Result<Self, SweeperError> {
+    ) -> Result<Self, WatcherError> {
         let lock = DistributedLock::new(
             &config.redis_url,
-            "gbe:lock:sweeper".to_string(),
+            "gbe:lock:watcher".to_string(),
             config.lock_ttl,
         )
         .await?;
@@ -49,11 +49,11 @@ impl Sweeper {
         })
     }
 
-    pub async fn run(&self, token: CancellationToken) -> Result<(), SweeperError> {
+    pub async fn run(&self, token: CancellationToken) -> Result<(), WatcherError> {
         loop {
             tokio::select! {
                 () = token.cancelled() => {
-                    tracing::info!("sweeper shutting down");
+                    tracing::info!("watcher shutting down");
                     return Ok(());
                 }
                 () = tokio::time::sleep(self.config.interval) => {
@@ -88,7 +88,7 @@ impl Sweeper {
         }
     }
 
-    pub async fn sweep_once(&self) -> Result<SweepReport, SweeperError> {
+    pub async fn sweep_once(&self) -> Result<SweepReport, WatcherError> {
         let mut report = SweepReport::default();
 
         self.detect_stuck_jobs(&mut report).await?;
@@ -97,7 +97,7 @@ impl Sweeper {
         Ok(report)
     }
 
-    async fn detect_stuck_jobs(&self, report: &mut SweepReport) -> Result<(), SweeperError> {
+    async fn detect_stuck_jobs(&self, report: &mut SweepReport) -> Result<(), WatcherError> {
         let threshold = now_millis().saturating_sub(self.config.stuck_threshold.as_millis() as u64);
         let threshold_str = threshold.to_string();
 
@@ -148,7 +148,7 @@ impl Sweeper {
         key: &str,
         fields: &HashMap<String, Bytes>,
         retry_count: u32,
-    ) -> Result<(), SweeperError> {
+    ) -> Result<(), WatcherError> {
         let now = now_millis();
         let timeout_at = now + self.config.stuck_threshold.as_millis() as u64;
 
@@ -171,7 +171,7 @@ impl Sweeper {
             let payload = serde_json::json!({
                 "key": key,
                 "retry_count": retry_count + 1,
-                "source": "sweeper",
+                "source": "watcher",
             });
             let _ = self
                 .transport
@@ -185,7 +185,7 @@ impl Sweeper {
         Ok(())
     }
 
-    async fn fail_job(&self, key: &str) -> Result<(), SweeperError> {
+    async fn fail_job(&self, key: &str) -> Result<(), WatcherError> {
         let now = now_millis();
 
         let mut updates = HashMap::new();
@@ -198,7 +198,7 @@ impl Sweeper {
         let payload = serde_json::json!({
             "key": key,
             "reason": "retry budget exhausted",
-            "source": "sweeper",
+            "source": "watcher",
         });
         let _ = self
             .transport
@@ -212,7 +212,7 @@ impl Sweeper {
         Ok(())
     }
 
-    async fn trim_streams(&self, report: &mut SweepReport) -> Result<(), SweeperError> {
+    async fn trim_streams(&self, report: &mut SweepReport) -> Result<(), WatcherError> {
         for stream in &self.config.streams {
             match self
                 .transport

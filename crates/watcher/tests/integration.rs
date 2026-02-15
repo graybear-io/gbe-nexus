@@ -1,7 +1,7 @@
-//! Integration tests for the sweeper and archiver.
+//! Integration tests for the watcher and archiver.
 //!
 //! Requires a running Redis instance. Set REDIS_URL to enable these tests.
-//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-sweeper
+//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-watcher
 
 use bytes::Bytes;
 use flate2::read::GzDecoder;
@@ -12,12 +12,12 @@ use std::time::Duration;
 
 use gbe_state_store::{StateStore, StateStoreConfig};
 use gbe_state_store_redis::RedisStateStore;
-use gbe_sweeper::{
-    ArchivalStream, Archiver, ArchiverConfig, DistributedLock, FsArchiveWriter, StreamRetention,
-    Sweeper, SweeperConfig,
-};
 use gbe_transport::Transport;
 use gbe_transport_redis::{RedisTransport, RedisTransportConfig};
+use gbe_watcher::{
+    ArchivalStream, Archiver, ArchiverConfig, DistributedLock, FsArchiveWriter, StreamRetention,
+    Watcher, WatcherConfig,
+};
 
 fn redis_url() -> Option<String> {
     std::env::var("REDIS_URL").ok()
@@ -146,14 +146,14 @@ async fn test_lock_expires() {
 
 // --- Sweep tests ---
 
-async fn make_sweeper(
+async fn make_watcher(
     prefix: &str,
     transport: Arc<dyn Transport>,
     store: Arc<dyn StateStore>,
-) -> Sweeper {
+) -> Watcher {
     let url = redis_url().unwrap();
-    Sweeper::new(
-        SweeperConfig {
+    Watcher::new(
+        WatcherConfig {
             redis_url: url,
             interval: Duration::from_secs(30),
             lock_ttl: Duration::from_secs(60),
@@ -198,7 +198,7 @@ async fn test_sweep_retries_stuck_job() {
         .await
         .unwrap();
 
-    let sweeper = make_sweeper(&prefix, Arc::new(transport), Arc::new(store)).await;
+    let sweeper = make_watcher(&prefix, Arc::new(transport), Arc::new(store)).await;
     let report = sweeper.sweep_once().await.unwrap();
 
     assert_eq!(report.retried, 1);
@@ -243,7 +243,7 @@ async fn test_sweep_fails_exhausted_job() {
         .await
         .unwrap();
 
-    let sweeper = make_sweeper(&prefix, Arc::new(transport), Arc::new(store)).await;
+    let sweeper = make_watcher(&prefix, Arc::new(transport), Arc::new(store)).await;
     let report = sweeper.sweep_once().await.unwrap();
 
     assert_eq!(report.retried, 0);
@@ -276,7 +276,7 @@ async fn test_sweep_skips_terminal_states() {
         .await
         .unwrap();
 
-    let sweeper = make_sweeper(&prefix, Arc::new(transport), Arc::new(store)).await;
+    let sweeper = make_watcher(&prefix, Arc::new(transport), Arc::new(store)).await;
     let report = sweeper.sweep_once().await.unwrap();
 
     assert_eq!(report.retried, 0);
@@ -397,8 +397,8 @@ async fn test_sweep_once_full_cycle() {
         .await
         .unwrap();
 
-    let sweeper = Sweeper::new(
-        SweeperConfig {
+    let sweeper = Watcher::new(
+        WatcherConfig {
             redis_url: url,
             interval: Duration::from_secs(30),
             lock_ttl: Duration::from_secs(60),
@@ -446,7 +446,7 @@ async fn make_archiver(
     subject: &str,
     domain: &str,
     batch_size: u32,
-    writer: Arc<dyn gbe_sweeper::ArchiveWriter>,
+    writer: Arc<dyn gbe_watcher::ArchiveWriter>,
     transport: Arc<dyn Transport>,
 ) -> Archiver {
     let url = redis_url().unwrap();

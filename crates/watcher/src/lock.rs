@@ -1,4 +1,4 @@
-use crate::error::SweeperError;
+use crate::error::WatcherError;
 
 const RELEASE_SCRIPT: &str = r#"
 if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -20,12 +20,12 @@ impl DistributedLock {
         redis_url: &str,
         key: String,
         ttl: std::time::Duration,
-    ) -> Result<Self, SweeperError> {
+    ) -> Result<Self, WatcherError> {
         let client =
-            redis::Client::open(redis_url).map_err(|e| SweeperError::Lock(e.to_string()))?;
+            redis::Client::open(redis_url).map_err(|e| WatcherError::Lock(e.to_string()))?;
         let conn = redis::aio::ConnectionManager::new(client)
             .await
-            .map_err(|e| SweeperError::Lock(e.to_string()))?;
+            .map_err(|e| WatcherError::Lock(e.to_string()))?;
 
         let host = hostname::get()
             .map(|h| h.to_string_lossy().to_string())
@@ -40,7 +40,7 @@ impl DistributedLock {
         })
     }
 
-    pub async fn acquire(&self) -> Result<bool, SweeperError> {
+    pub async fn acquire(&self) -> Result<bool, WatcherError> {
         let mut conn = self.conn.clone();
         let result: Option<String> = redis::cmd("SET")
             .arg(&self.key)
@@ -50,18 +50,18 @@ impl DistributedLock {
             .arg(self.ttl_ms)
             .query_async(&mut conn)
             .await
-            .map_err(|e| SweeperError::Lock(e.to_string()))?;
+            .map_err(|e| WatcherError::Lock(e.to_string()))?;
         Ok(result.is_some())
     }
 
-    pub async fn release(&self) -> Result<(), SweeperError> {
+    pub async fn release(&self) -> Result<(), WatcherError> {
         let mut conn = self.conn.clone();
         let _: i32 = redis::Script::new(RELEASE_SCRIPT)
             .key(&self.key)
             .arg(&self.instance_id)
             .invoke_async(&mut conn)
             .await
-            .map_err(|e| SweeperError::Lock(e.to_string()))?;
+            .map_err(|e| WatcherError::Lock(e.to_string()))?;
         Ok(())
     }
 }

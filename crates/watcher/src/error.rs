@@ -3,7 +3,7 @@ use gbe_transport::TransportError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum SweeperError {
+pub enum WatcherError {
     #[error("transport: {0}")]
     Transport(#[from] TransportError),
 

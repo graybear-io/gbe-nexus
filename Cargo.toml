@@ -5,7 +5,7 @@ members = [
     "crates/transport-redis",
     "crates/state-store",
     "crates/state-store-redis",
-    "crates/sweeper",
+    "crates/watcher",
 ]
 
 [workspace.package]

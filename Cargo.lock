@@ -207,29 +207,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gbe-sweeper"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "flate2",
- "gbe-state-store",
- "gbe-state-store-redis",
- "gbe-transport",
- "gbe-transport-redis",
- "hostname",
- "redis",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tokio",
- "tokio-util",
- "tracing",
- "ulid",
-]
-
-[[package]]
 name = "gbe-transport"
 version = "0.1.0"
 dependencies = [
@@ -253,6 +230,29 @@ dependencies = [
  "redis",
  "serde",
  "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "ulid",
+]
+
+[[package]]
+name = "gbe-watcher"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "flate2",
+ "gbe-state-store",
+ "gbe-state-store-redis",
+ "gbe-transport",
+ "gbe-transport-redis",
+ "hostname",
+ "redis",
+ "serde",
+ "serde_json",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-util",
