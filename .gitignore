@@ -1,0 +1,21 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code working directory
+.claude/
+
+# Local environment overrides
+.env.local
+
+# Beads export state
+export-state/
