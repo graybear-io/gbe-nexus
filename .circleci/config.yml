@@ -1,0 +1,134 @@
+version: 2.1
+
+# Reusable commands
+commands:
+  install_just:
+    description: "Install just command runner"
+    steps:
+      - run:
+          name: "Install just"
+          command: |
+            curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> $BASH_ENV
+            source $BASH_ENV
+            just --version
+
+  setup_rust_cache:
+    description: "Restore Rust build caches"
+    steps:
+      - restore_cache:
+          keys:
+            - cargo-registry-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+            - cargo-registry-v1-{{ arch }}-
+      - restore_cache:
+          keys:
+            - cargo-target-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+            - cargo-target-v1-{{ arch }}-
+
+  save_rust_cache:
+    description: "Save Rust build caches"
+    steps:
+      - save_cache:
+          key: cargo-registry-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - ~/.cargo/registry
+            - ~/.cargo/git
+      - save_cache:
+          key: cargo-target-v1-{{ arch }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - target
+
+jobs:
+  build:
+    docker:
+      - image: cimg/rust:1.93
+    resource_class: medium
+    steps:
+      - checkout
+      - install_just
+      - setup_rust_cache
+      - run:
+          name: "Show Rust version"
+          command: |
+            rustc --version
+            cargo --version
+      - run:
+          name: "Build workspace"
+          command: just build
+      - save_rust_cache
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target
+
+  test:
+    docker:
+      - image: cimg/rust:1.93
+    resource_class: medium
+    steps:
+      - checkout
+      - install_just
+      - setup_rust_cache
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Run all tests"
+          command: just test
+
+  clippy:
+    docker:
+      - image: cimg/rust:1.93
+    resource_class: medium
+    steps:
+      - checkout
+      - install_just
+      - setup_rust_cache
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Run clippy"
+          command: just clippy
+
+  fmt:
+    docker:
+      - image: cimg/rust:1.93
+    resource_class: small
+    steps:
+      - checkout
+      - install_just
+      - run:
+          name: "Check formatting"
+          command: just fmt-check
+
+  doc:
+    docker:
+      - image: cimg/rust:1.93
+    resource_class: medium
+    steps:
+      - checkout
+      - install_just
+      - setup_rust_cache
+      - attach_workspace:
+          at: .
+      - run:
+          name: "Build documentation"
+          command: just doc
+      - store_artifacts:
+          path: target/doc
+          destination: docs
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - clippy:
+          requires:
+            - build
+      - fmt
+      - doc:
+          requires:
+            - build
