@@ -25,6 +25,10 @@ pub trait Transport: Send + Sync {
 
     async fn ensure_stream(&self, config: StreamConfig) -> Result<(), TransportError>;
 
+    /// Trim entries older than `max_age` from the stream.
+    /// Returns the number of entries removed. No-op for backends with native retention.
+    async fn trim_stream(&self, subject: &str, max_age: Duration) -> Result<u64, TransportError>;
+
     async fn ping(&self) -> Result<bool, TransportError>;
 
     async fn close(&self) -> Result<(), TransportError>;

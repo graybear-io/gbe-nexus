@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
 use gbe_transport::{
@@ -137,6 +138,28 @@ impl gbe_transport::Transport for RedisTransport {
             Err(e) if e.to_string().contains("BUSYGROUP") => Ok(()),
             Err(e) => Err(TransportError::Stream(e.to_string())),
         }
+    }
+
+    async fn trim_stream(&self, subject: &str, max_age: Duration) -> Result<u64, TransportError> {
+        self.check_closed()?;
+        let key = subject_to_key(subject);
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        let min_ms = now_ms.saturating_sub(max_age.as_millis() as u64);
+        let min_id = format!("{min_ms}-0");
+
+        let mut conn = self.conn.clone();
+        let trimmed: u64 = redis::cmd("XTRIM")
+            .arg(&key)
+            .arg("MINID")
+            .arg("~")
+            .arg(&min_id)
+            .query_async(&mut conn)
+            .await
+            .map_err(map_redis_err)?;
+        Ok(trimmed)
     }
 
     async fn ping(&self) -> Result<bool, TransportError> {

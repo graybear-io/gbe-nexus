@@ -1,3 +1,9 @@
-// Sweeper: stuck job detection, stream trimming, dead consumer cleanup.
-// Archiver: drain archival streams to cold storage (S3).
-// TODO: implement Sweeper and Archiver
+mod config;
+mod error;
+mod lock;
+mod sweeper;
+
+pub use config::{StreamRetention, SweeperConfig};
+pub use error::SweeperError;
+pub use lock::DistributedLock;
+pub use sweeper::{SweepReport, Sweeper};

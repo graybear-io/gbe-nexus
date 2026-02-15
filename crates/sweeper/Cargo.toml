@@ -10,6 +10,17 @@ repository.workspace = true
 gbe-transport.workspace = true
 gbe-state-store.workspace = true
 async-trait.workspace = true
-serde = { workspace = true }
+bytes.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+ulid.workspace = true
+redis = { version = "0.29", features = ["tokio-comp", "script", "connection-manager"] }
+hostname = "0.4"
+
+[dev-dependencies]
+gbe-transport-redis.workspace = true
+gbe-state-store-redis.workspace = true
