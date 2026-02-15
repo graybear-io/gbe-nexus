@@ -15,6 +15,3 @@ target/
 
 # Local environment overrides
 .env.local
-
-# Beads export state
-export-state/
