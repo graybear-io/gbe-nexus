@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
-use gbe_transport::{
+use gbe_nexus::{
     Envelope, MessageHandler, PublishOpts, StreamConfig, SubscribeOpts, TransportError,
 };
 
@@ -51,7 +51,7 @@ impl RedisTransport {
 }
 
 #[async_trait]
-impl gbe_transport::Transport for RedisTransport {
+impl gbe_nexus::Transport for RedisTransport {
     async fn publish(
         &self,
         subject: &str,
@@ -93,7 +93,7 @@ impl gbe_transport::Transport for RedisTransport {
         group: &str,
         handler: Box<dyn MessageHandler>,
         opts: Option<SubscribeOpts>,
-    ) -> Result<Box<dyn gbe_transport::Subscription>, TransportError> {
+    ) -> Result<Box<dyn gbe_nexus::Subscription>, TransportError> {
         self.check_closed()?;
 
         let opts = opts.unwrap_or_default();

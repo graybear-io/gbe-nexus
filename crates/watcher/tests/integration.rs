@@ -10,10 +10,10 @@ use std::io::Read;
 use std::sync::Arc;
 use std::time::Duration;
 
+use gbe_nexus::Transport;
+use gbe_nexus_redis::{RedisTransport, RedisTransportConfig};
 use gbe_state_store::{StateStore, StateStoreConfig};
 use gbe_state_store_redis::RedisStateStore;
-use gbe_transport::Transport;
-use gbe_transport_redis::{RedisTransport, RedisTransportConfig};
 use gbe_watcher::{
     ArchivalStream, Archiver, ArchiverConfig, DistributedLock, FsArchiveWriter, StreamRetention,
     Watcher, WatcherConfig,
@@ -189,7 +189,7 @@ async fn test_sweep_retries_stuck_job() {
     // Ensure the queue stream exists for the retry publish
     let subject = "gbe.tasks.email-send.queue".to_string();
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -234,7 +234,7 @@ async fn test_sweep_fails_exhausted_job() {
 
     // Ensure error stream exists
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: "gbe.events.system.error".to_string(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -302,7 +302,7 @@ async fn test_stream_trimming() {
     );
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -368,7 +368,7 @@ async fn test_sweep_once_full_cycle() {
     // Ensure streams exist
     for subject in &["gbe.tasks.email-send.queue", "gbe.events.system.error"] {
         transport
-            .ensure_stream(gbe_transport::StreamConfig {
+            .ensure_stream(gbe_nexus::StreamConfig {
                 subject: subject.to_string(),
                 max_age: Duration::from_secs(3600),
                 max_bytes: None,
@@ -384,7 +384,7 @@ async fn test_sweep_once_full_cycle() {
         ulid::Ulid::new().to_string().to_lowercase()
     );
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: trim_subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -480,7 +480,7 @@ async fn test_archive_batch_writes_jsonl_gz() {
     let subject = test_subject("write");
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -542,7 +542,7 @@ async fn test_archive_batch_acks_after_write() {
     let subject = test_subject("ack");
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -600,7 +600,7 @@ async fn test_archive_skips_empty_stream() {
     let subject = test_subject("empty");
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -635,7 +635,7 @@ async fn test_archive_path_format() {
     let subject = test_subject("path");
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,
@@ -691,7 +691,7 @@ async fn test_archive_multiple_batches() {
     let subject = test_subject("multi");
 
     transport
-        .ensure_stream(gbe_transport::StreamConfig {
+        .ensure_stream(gbe_nexus::StreamConfig {
             subject: subject.clone(),
             max_age: Duration::from_secs(3600),
             max_bytes: None,

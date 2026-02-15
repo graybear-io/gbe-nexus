@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/transport",
-    "crates/transport-redis",
+    "crates/nexus",
+    "crates/nexus-redis",
     "crates/state-store",
     "crates/state-store-redis",
     "crates/watcher",
@@ -12,12 +12,12 @@ members = [
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/graybear-io/gbe-transport"
+repository = "https://github.com/graybear-io/gbe-nexus"
 
 [workspace.dependencies]
 # Internal crates
-gbe-transport = { path = "crates/transport" }
-gbe-transport-redis = { path = "crates/transport-redis" }
+gbe-nexus = { path = "crates/nexus" }
+gbe-nexus-redis = { path = "crates/nexus-redis" }
 gbe-state-store = { path = "crates/state-store" }
 gbe-state-store-redis = { path = "crates/state-store-redis" }
 

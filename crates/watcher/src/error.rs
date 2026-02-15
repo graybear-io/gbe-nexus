@@ -1,5 +1,5 @@
+use gbe_nexus::TransportError;
 use gbe_state_store::StateStoreError;
-use gbe_transport::TransportError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

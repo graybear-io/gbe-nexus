@@ -1,4 +1,4 @@
-use gbe_transport::TransportError;
+use gbe_nexus::TransportError;
 
 pub(crate) fn map_redis_err(e: redis::RedisError) -> TransportError {
     use redis::ErrorKind;

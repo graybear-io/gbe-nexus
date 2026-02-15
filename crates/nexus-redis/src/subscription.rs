@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio_util::sync::CancellationToken;
 
-use gbe_transport::TransportError;
+use gbe_nexus::TransportError;
 
 pub(crate) struct RedisSubscription {
     pub(crate) token: CancellationToken,
@@ -11,7 +11,7 @@ pub(crate) struct RedisSubscription {
 }
 
 #[async_trait]
-impl gbe_transport::Subscription for RedisSubscription {
+impl gbe_nexus::Subscription for RedisSubscription {
     async fn unsubscribe(&self) -> Result<(), TransportError> {
         self.token.cancel();
         self.active.store(false, Ordering::Release);

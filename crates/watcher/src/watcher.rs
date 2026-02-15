@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio_util::sync::CancellationToken;
 
+use gbe_nexus::Transport;
 use gbe_state_store::{ScanFilter, ScanOp, StateStore};
-use gbe_transport::Transport;
 
 use crate::config::WatcherConfig;
 use crate::error::WatcherError;

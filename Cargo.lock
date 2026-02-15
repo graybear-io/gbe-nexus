@@ -184,6 +184,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbe-nexus"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64",
+ "bytes",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "ulid",
+]
+
+[[package]]
+name = "gbe-nexus-redis"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "gbe-nexus",
+ "hostname",
+ "redis",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "ulid",
+]
+
+[[package]]
 name = "gbe-state-store"
 version = "0.1.0"
 dependencies = [
@@ -207,47 +238,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "gbe-transport"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64",
- "bytes",
- "serde",
- "serde_json",
- "thiserror",
- "ulid",
-]
-
-[[package]]
-name = "gbe-transport-redis"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "gbe-transport",
- "hostname",
- "redis",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-util",
- "tracing",
- "ulid",
-]
-
-[[package]]
 name = "gbe-watcher"
 version = "0.1.0"
 dependencies = [
  "async-trait",
  "bytes",
  "flate2",
+ "gbe-nexus",
+ "gbe-nexus-redis",
  "gbe-state-store",
  "gbe-state-store-redis",
- "gbe-transport",
- "gbe-transport-redis",
  "hostname",
  "redis",
  "serde",

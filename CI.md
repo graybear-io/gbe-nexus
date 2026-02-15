@@ -2,8 +2,8 @@
 
 ## CircleCI
 
-**Project:** gh/graybear-io/gbe-transport
-**Dashboard:** https://app.circleci.com/pipelines/gh/graybear-io/gbe-transport
+**Project:** gh/graybear-io/gbe-nexus
+**Dashboard:** https://app.circleci.com/pipelines/gh/graybear-io/gbe-nexus
 
 ### For Agents
 
@@ -11,9 +11,9 @@ When using CircleCI MCP tools, use these parameters:
 
 ```json
 {
-  "projectSlug": "gh/graybear-io/gbe-transport",
-  "gitRemoteURL": "git@github.com:graybear-io/gbe-transport.git",
-  "workspaceRoot": "/Users/bear/projects/gbe-transport",
+  "projectSlug": "gh/graybear-io/gbe-nexus",
+  "gitRemoteURL": "git@github.com:graybear-io/gbe-nexus.git",
+  "workspaceRoot": "/Users/bear/projects/gbe-nexus",
   "branch": "main"
 }
 ```

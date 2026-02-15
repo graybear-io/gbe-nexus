@@ -3,7 +3,7 @@
 //! Requires a running Redis instance. Set REDIS_URL to enable these tests.
 //! Default: redis://127.0.0.1:6379
 //!
-//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-transport-redis
+//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-nexus-redis
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -11,10 +11,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Notify;
 
-use gbe_transport::{
+use gbe_nexus::{
     Message, MessageHandler, StartPosition, StreamConfig, SubscribeOpts, Transport, TransportError,
 };
-use gbe_transport_redis::{RedisTransport, RedisTransportConfig};
+use gbe_nexus_redis::{RedisTransport, RedisTransportConfig};
 
 fn redis_url() -> Option<String> {
     std::env::var("REDIS_URL").ok()
@@ -389,7 +389,7 @@ async fn test_trace_id_propagation() {
         .publish(
             &subject,
             Bytes::from("traced"),
-            Some(gbe_transport::PublishOpts {
+            Some(gbe_nexus::PublishOpts {
                 trace_id: Some("abc-123-trace".to_string()),
                 ..Default::default()
             }),

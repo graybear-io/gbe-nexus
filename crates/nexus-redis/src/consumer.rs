@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 use tokio_util::sync::CancellationToken;
 
-use gbe_transport::{Envelope, MessageHandler, SubscribeOpts, TransportError};
+use gbe_nexus::{Envelope, MessageHandler, SubscribeOpts, TransportError};
 
 use crate::error::map_redis_err;
 use crate::message::RedisMessage;
@@ -22,10 +22,10 @@ pub(crate) struct ConsumerParams {
 
 pub(crate) async fn run_consumer_loop(mut p: ConsumerParams) {
     let start_id = match &p.opts.start_from {
-        gbe_transport::StartPosition::Latest => "$".to_string(),
-        gbe_transport::StartPosition::Earliest => "0".to_string(),
-        gbe_transport::StartPosition::Id(id) => id.clone(),
-        gbe_transport::StartPosition::Timestamp(ts) => format!("{ts}-0"),
+        gbe_nexus::StartPosition::Latest => "$".to_string(),
+        gbe_nexus::StartPosition::Earliest => "0".to_string(),
+        gbe_nexus::StartPosition::Id(id) => id.clone(),
+        gbe_nexus::StartPosition::Timestamp(ts) => format!("{ts}-0"),
     };
 
     if let Err(e) = create_group(&mut p.conn, &p.stream_key, &p.group, &start_id).await {

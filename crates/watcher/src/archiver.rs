@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio_util::sync::CancellationToken;
 
-use gbe_transport::Transport;
+use gbe_nexus::Transport;
 
 use crate::archive_writer::ArchiveWriter;
 use crate::error::WatcherError;

@@ -1,5 +1,5 @@
 [package]
-name = "gbe-transport-redis"
+name = "gbe-nexus-redis"
 description = "Redis Streams transport backend for GBE"
 version.workspace = true
 edition.workspace = true
@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-gbe-transport.workspace = true
+gbe-nexus.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 serde.workspace = true

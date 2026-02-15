@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use gbe_transport::{Envelope, TransportError};
+use gbe_nexus::{Envelope, TransportError};
 
 use crate::error::map_redis_err;
 use crate::subject::extract_domain;
@@ -17,7 +17,7 @@ pub(crate) struct RedisMessage {
 }
 
 #[async_trait]
-impl gbe_transport::Message for RedisMessage {
+impl gbe_nexus::Message for RedisMessage {
     fn envelope(&self) -> &Envelope {
         &self.envelope
     }
