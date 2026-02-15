@@ -23,7 +23,11 @@ gbe-state-store-redis = { path = "crates/state-store-redis" }
 
 # Async
 tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
 async-trait = "0.1"
+
+# Observability
+tracing = "0.1"
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
