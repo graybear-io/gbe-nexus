@@ -1,2 +1,4 @@
-// Redis implementation of the StateStore trait.
-// TODO: implement RedisStateStore
+mod error;
+mod store;
+
+pub use store::RedisStateStore;

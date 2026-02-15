@@ -177,6 +177,8 @@ dependencies = [
  "redis",
  "thiserror",
  "tokio",
+ "tracing",
+ "ulid",
 ]
 
 [[package]]

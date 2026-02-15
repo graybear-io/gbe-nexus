@@ -12,4 +12,9 @@ async-trait.workspace = true
 bytes.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-redis = { version = "0.29", features = ["tokio-comp", "script"] }
+tracing.workspace = true
+redis = { version = "0.29", features = ["tokio-comp", "script", "connection-manager"] }
+
+[dev-dependencies]
+ulid.workspace = true
+redis = { version = "0.29", features = ["tokio-comp"] }
