@@ -1,16 +1,21 @@
-//! Integration tests for the sweeper.
+//! Integration tests for the sweeper and archiver.
 //!
 //! Requires a running Redis instance. Set REDIS_URL to enable these tests.
 //! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-sweeper
 
 use bytes::Bytes;
+use flate2::read::GzDecoder;
 use std::collections::HashMap;
+use std::io::Read;
 use std::sync::Arc;
 use std::time::Duration;
 
 use gbe_state_store::{StateStore, StateStoreConfig};
 use gbe_state_store_redis::RedisStateStore;
-use gbe_sweeper::{DistributedLock, StreamRetention, Sweeper, SweeperConfig};
+use gbe_sweeper::{
+    ArchivalStream, Archiver, ArchiverConfig, DistributedLock, FsArchiveWriter, StreamRetention,
+    Sweeper, SweeperConfig,
+};
 use gbe_transport::Transport;
 use gbe_transport_redis::{RedisTransport, RedisTransportConfig};
 
@@ -425,4 +430,300 @@ async fn test_sweep_once_full_cycle() {
         "gbe:events:system:error",
     ])
     .await;
+}
+
+// --- Archiver tests ---
+
+fn test_subject(name: &str) -> String {
+    format!(
+        "gbe.test.archive.{}.{}",
+        name,
+        ulid::Ulid::new().to_string().to_lowercase()
+    )
+}
+
+async fn make_archiver(
+    subject: &str,
+    domain: &str,
+    batch_size: u32,
+    writer: Arc<dyn gbe_sweeper::ArchiveWriter>,
+    transport: Arc<dyn Transport>,
+) -> Archiver {
+    let url = redis_url().unwrap();
+    Archiver::new(
+        ArchiverConfig {
+            redis_url: url,
+            group: format!(
+                "test-archiver-{}",
+                ulid::Ulid::new().to_string().to_lowercase()
+            ),
+            streams: vec![ArchivalStream {
+                subject: subject.to_string(),
+                domain: domain.to_string(),
+                batch_size,
+                batch_timeout: Duration::from_secs(5),
+            }],
+        },
+        writer,
+        transport,
+    )
+    .await
+    .unwrap()
+}
+
+#[tokio::test]
+async fn test_archive_batch_writes_jsonl_gz() {
+    if redis_url().is_none() {
+        return;
+    }
+    let transport = connect_transport().await;
+    let subject = test_subject("write");
+
+    transport
+        .ensure_stream(gbe_transport::StreamConfig {
+            subject: subject.clone(),
+            max_age: Duration::from_secs(3600),
+            max_bytes: None,
+            max_msgs: None,
+        })
+        .await
+        .unwrap();
+
+    // Publish 3 messages
+    for i in 0..3 {
+        transport
+            .publish(&subject, Bytes::from(format!("payload-{i}")), None)
+            .await
+            .unwrap();
+    }
+
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(FsArchiveWriter::new(tmp_dir.path()));
+    let transport = Arc::new(transport);
+
+    let archiver = make_archiver(&subject, "audit", 3, writer, transport.clone()).await;
+    let report = archiver
+        .process_batch(&archiver.config().streams[0])
+        .await
+        .unwrap();
+
+    assert_eq!(report.messages, 3);
+    assert!(report.path.is_some());
+
+    // Read and decompress the file
+    let path = tmp_dir.path().join(report.path.as_ref().unwrap());
+    let compressed = std::fs::read(&path).unwrap();
+    let mut decoder = GzDecoder::new(&compressed[..]);
+    let mut jsonl = String::new();
+    decoder.read_to_string(&mut jsonl).unwrap();
+
+    let lines: Vec<&str> = jsonl.trim().split('\n').collect();
+    assert_eq!(lines.len(), 3);
+
+    // Each line should be valid JSON with envelope fields
+    for line in &lines {
+        let val: serde_json::Value = serde_json::from_str(line).unwrap();
+        assert!(val.get("message_id").is_some());
+        assert!(val.get("subject").is_some());
+        assert!(val.get("timestamp").is_some());
+        assert!(val.get("payload").is_some());
+    }
+
+    let stream_key = subject.replace('.', ":");
+    cleanup_keys(&[stream_key.as_str()]).await;
+}
+
+#[tokio::test]
+async fn test_archive_batch_acks_after_write() {
+    if redis_url().is_none() {
+        return;
+    }
+    let transport = connect_transport().await;
+    let subject = test_subject("ack");
+
+    transport
+        .ensure_stream(gbe_transport::StreamConfig {
+            subject: subject.clone(),
+            max_age: Duration::from_secs(3600),
+            max_bytes: None,
+            max_msgs: None,
+        })
+        .await
+        .unwrap();
+
+    for i in 0..3 {
+        transport
+            .publish(&subject, Bytes::from(format!("ack-{i}")), None)
+            .await
+            .unwrap();
+    }
+
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(FsArchiveWriter::new(tmp_dir.path()));
+    let transport = Arc::new(transport);
+
+    let archiver = make_archiver(&subject, "audit", 3, writer, transport.clone()).await;
+    let report = archiver
+        .process_batch(&archiver.config().streams[0])
+        .await
+        .unwrap();
+    assert_eq!(report.messages, 3);
+
+    // Verify no pending messages in the consumer group
+    let url = redis_url().unwrap();
+    let client = redis::Client::open(url.as_str()).unwrap();
+    let mut conn = client.get_multiplexed_async_connection().await.unwrap();
+    let stream_key = subject.replace('.', ":");
+
+    let result: redis::Value = redis::cmd("XPENDING")
+        .arg(&stream_key)
+        .arg(archiver.config().group.as_str())
+        .query_async(&mut conn)
+        .await
+        .unwrap();
+
+    if let redis::Value::Array(arr) = &result
+        && let Some(redis::Value::Int(pending)) = arr.first()
+    {
+        assert_eq!(*pending, 0, "expected 0 pending messages after ack");
+    }
+
+    cleanup_keys(&[stream_key.as_str()]).await;
+}
+
+#[tokio::test]
+async fn test_archive_skips_empty_stream() {
+    if redis_url().is_none() {
+        return;
+    }
+    let transport = connect_transport().await;
+    let subject = test_subject("empty");
+
+    transport
+        .ensure_stream(gbe_transport::StreamConfig {
+            subject: subject.clone(),
+            max_age: Duration::from_secs(3600),
+            max_bytes: None,
+            max_msgs: None,
+        })
+        .await
+        .unwrap();
+
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(FsArchiveWriter::new(tmp_dir.path()));
+    let transport = Arc::new(transport);
+
+    let archiver = make_archiver(&subject, "audit", 10, writer, transport.clone()).await;
+    let report = archiver
+        .process_batch(&archiver.config().streams[0])
+        .await
+        .unwrap();
+
+    assert_eq!(report.messages, 0);
+    assert!(report.path.is_none());
+
+    let stream_key = subject.replace('.', ":");
+    cleanup_keys(&[stream_key.as_str()]).await;
+}
+
+#[tokio::test]
+async fn test_archive_path_format() {
+    if redis_url().is_none() {
+        return;
+    }
+    let transport = connect_transport().await;
+    let subject = test_subject("path");
+
+    transport
+        .ensure_stream(gbe_transport::StreamConfig {
+            subject: subject.clone(),
+            max_age: Duration::from_secs(3600),
+            max_bytes: None,
+            max_msgs: None,
+        })
+        .await
+        .unwrap();
+
+    transport
+        .publish(&subject, Bytes::from("test"), None)
+        .await
+        .unwrap();
+
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(FsArchiveWriter::new(tmp_dir.path()));
+    let transport = Arc::new(transport);
+
+    let archiver = make_archiver(&subject, "audit", 1, writer, transport.clone()).await;
+    let report = archiver
+        .process_batch(&archiver.config().streams[0])
+        .await
+        .unwrap();
+
+    let path = report.path.unwrap();
+    // Should match: audit/YYYY/MM/DD/{ulid}.jsonl.gz
+    assert!(
+        path.starts_with("audit/"),
+        "path should start with domain: {path}"
+    );
+    assert!(
+        path.ends_with(".jsonl.gz"),
+        "path should end with .jsonl.gz: {path}"
+    );
+
+    // Check date components are present (YYYY/MM/DD)
+    let parts: Vec<&str> = path.split('/').collect();
+    assert_eq!(parts.len(), 5, "expected 5 path segments: {path}");
+    assert_eq!(parts[0], "audit");
+    assert_eq!(parts[1].len(), 4, "year should be 4 digits");
+    assert_eq!(parts[2].len(), 2, "month should be 2 digits");
+    assert_eq!(parts[3].len(), 2, "day should be 2 digits");
+
+    let stream_key = subject.replace('.', ":");
+    cleanup_keys(&[stream_key.as_str()]).await;
+}
+
+#[tokio::test]
+async fn test_archive_multiple_batches() {
+    if redis_url().is_none() {
+        return;
+    }
+    let transport = connect_transport().await;
+    let subject = test_subject("multi");
+
+    transport
+        .ensure_stream(gbe_transport::StreamConfig {
+            subject: subject.clone(),
+            max_age: Duration::from_secs(3600),
+            max_bytes: None,
+            max_msgs: None,
+        })
+        .await
+        .unwrap();
+
+    // Publish 6 messages, batch_size=3 → should produce 2 batches
+    for i in 0..6 {
+        transport
+            .publish(&subject, Bytes::from(format!("multi-{i}")), None)
+            .await
+            .unwrap();
+    }
+
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let writer = Arc::new(FsArchiveWriter::new(tmp_dir.path()));
+    let transport = Arc::new(transport);
+
+    let archiver = make_archiver(&subject, "audit", 3, writer, transport.clone()).await;
+
+    let stream_cfg = &archiver.config().streams[0];
+    let report1 = archiver.process_batch(stream_cfg).await.unwrap();
+    let report2 = archiver.process_batch(stream_cfg).await.unwrap();
+
+    assert_eq!(report1.messages, 3);
+    assert_eq!(report2.messages, 3);
+
+    // Both should have different paths
+    assert_ne!(report1.path, report2.path);
+
+    let stream_key = subject.replace('.', ":");
+    cleanup_keys(&[stream_key.as_str()]).await;
 }

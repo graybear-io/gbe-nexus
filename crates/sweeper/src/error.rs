@@ -13,6 +13,12 @@ pub enum SweeperError {
     #[error("lock: {0}")]
     Lock(String),
 
+    #[error("redis: {0}")]
+    Redis(String),
+
+    #[error("writer: {0}")]
+    Writer(String),
+
     #[error("{0}")]
     Other(String),
 }
