@@ -1,17 +1,19 @@
-# Rust
-target/
+# Rust build artifacts
+/target
 **/*.rs.bk
 
-# IDEs and editors
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+
+# OS
 .DS_Store
 
-# Claude Code working directory
-.claude/
+# Claude Code
+.claude/settings.local.json
 
 # Local environment overrides
 .env.local
