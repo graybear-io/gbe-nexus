@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/nexus",
+    "crates/nexus-memory",
     "crates/nexus-redis",
     "crates/state-store",
     "crates/state-store-redis",
@@ -17,6 +18,7 @@ repository = "https://github.com/graybear-io/gbe-nexus"
 [workspace.dependencies]
 # Internal crates
 gbe-nexus = { path = "crates/nexus" }
+gbe-nexus-memory = { path = "crates/nexus-memory" }
 gbe-nexus-redis = { path = "crates/nexus-redis" }
 gbe-state-store = { path = "crates/state-store" }
 gbe-state-store-redis = { path = "crates/state-store-redis" }
