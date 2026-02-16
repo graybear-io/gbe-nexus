@@ -7,6 +7,7 @@ members = [
     "crates/state-store",
     "crates/state-store-redis",
     "crates/watcher",
+    "crates/jobs-domain",
 ]
 
 [workspace.package]
@@ -22,6 +23,7 @@ gbe-nexus-memory = { path = "crates/nexus-memory" }
 gbe-nexus-redis = { path = "crates/nexus-redis" }
 gbe-state-store = { path = "crates/state-store" }
 gbe-state-store-redis = { path = "crates/state-store-redis" }
+gbe-jobs-domain = { path = "crates/jobs-domain" }
 
 # Async
 tokio = { version = "1", features = ["full"] }

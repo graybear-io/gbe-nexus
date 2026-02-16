@@ -1,0 +1,15 @@
+[package]
+name = "gbe-jobs-domain"
+description = "Job/task domain schemas for the GBE event backbone"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_yaml = "0.9"
