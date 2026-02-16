@@ -7,39 +7,81 @@ We use **bd (beads)** for issue and task tracking.
 **Get full workflow context:** Run `bd prime` for dynamic, up-to-date workflow instructions (~80 lines).
 Hooks auto-inject this at session start when `.beads/` is detected.
 
-## CI/CD Integration
-
-See [CI.md](CI.md) for CircleCI configuration and project identifiers.
-
 ## Before Every Commit (MANDATORY)
 
 **Quality gates MUST run before every commit, not just at session end.**
 
+**NO EXCEPTIONS** - Even for "small" changes or documentation.
+
+## Commit Workflow
+
+Install, if needed, into the repository a pre-commit hook that **automatically** runs quality gates:
+
 ```bash
-# 1. Format code
-cargo fmt
+git add <files>
+git commit -m "message"
+# → Hook runs: cargo fmt --check, clippy, test
+# → Commit proceeds only if all pass
+```
 
-# 2. Check linting
-cargo clippy --workspace
+**To bypass** (emergency only):
 
-# 3. Run tests
-cargo test --workspace
+```bash
+git commit --no-verify -m "message"
+```
 
-# 4. ONLY THEN commit
+## Manual: Quality Gates Checklist
+
+If you need to run checks manually:
+
+```bash
+just ci
+
+# Commit (hook will verify)
 git add <files>
 git commit -m "message"
 ```
 
-**NO EXCEPTIONS** - Even for "small" changes or documentation.
+## Troubleshooting
 
-**Why this matters:**
-- CI will fail if quality gates fail
-- Fixing after push wastes time and creates noise
-- Pre-commit hook enforces this (see below)
+Formatting check failed:
 
-**Use `/commit` skill for guided workflow** (runs checks automatically)
+```bash
+cargo fmt
+git add <files>
+git commit -m "message"
+```
 
-**See:** [~projects/guides/COMMIT_WORKFLOW.md](~/projects/guides/COMMIT_WORKFLOW.md) for detailed workflow
+Clippy check failed:
+
+```bash
+cargo clippy --workspace --fix --allow-dirty
+git add <files>
+git commit -m "message"
+```
+
+Tests failed:
+
+- Fix the failing tests first
+- Or commit with `--no-verify` if intentionally committing broken tests (rare)
+
+## Hook Installation
+
+Pre-commit hook is at `.git/hooks/pre-commit`.
+
+**To disable:**
+
+```bash
+rm .git/hooks/pre-commit
+```
+
+**To enable:**
+
+```bash
+chmod +x .git/hooks/pre-commit
+```
+
+**Not in git?** Hooks are local-only (`.git/hooks/` not tracked). Document setup in README or project setup guide.
 
 ## Quick Reference
 
