@@ -29,6 +29,11 @@ pub struct TaskDefinition {
     /// Static parameters passed to the worker.
     #[serde(default)]
     pub params: TaskParams,
+    /// Maps param names to upstream task output refs (dot-notation).
+    /// e.g. `{ "url": "fetch.data.url" }` — resolved by the driver
+    /// before dispatching this task.
+    #[serde(default)]
+    pub input_from: HashMap<String, String>,
     /// Per-task timeout override in seconds.
     #[serde(default)]
     pub timeout_secs: Option<u64>,
@@ -78,6 +83,17 @@ impl JobDefinition {
             // Self-dependency
             if task.depends_on.contains(&task.name) {
                 return Err(JobsDomainError::CyclicDependency);
+            }
+
+            // input_from refs must point to declared dependencies
+            for (param, ref_str) in &task.input_from {
+                let source_task = ref_str.split('.').next().unwrap_or("");
+                if !task.depends_on.iter().any(|d| d == source_task) {
+                    return Err(JobsDomainError::ValidationFailed(format!(
+                        "task '{}' input_from '{}' references '{}' which is not in depends_on",
+                        task.name, param, source_task
+                    )));
+                }
             }
         }
 
@@ -177,6 +193,7 @@ mod tests {
                     task_type: TaskType::new("data-fetch").unwrap(),
                     depends_on: vec![],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: Some(120),
                     max_retries: None,
                 },
@@ -185,6 +202,7 @@ mod tests {
                     task_type: TaskType::new("data-transform").unwrap(),
                     depends_on: vec!["fetch".to_string()],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: Some(3),
                 },
@@ -193,6 +211,7 @@ mod tests {
                     task_type: TaskType::new("email-send").unwrap(),
                     depends_on: vec!["transform".to_string()],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -231,6 +250,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec![],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -239,6 +259,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec![],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -247,6 +268,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec!["a".to_string(), "b".to_string()],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -271,6 +293,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec!["b".to_string()],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -279,6 +302,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec!["a".to_string()],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -301,6 +325,7 @@ mod tests {
                 task_type: TaskType::new("work").unwrap(),
                 depends_on: vec!["a".to_string()],
                 params: TaskParams::default(),
+                input_from: HashMap::new(),
                 timeout_secs: None,
                 max_retries: None,
             }],
@@ -322,6 +347,7 @@ mod tests {
                 task_type: TaskType::new("work").unwrap(),
                 depends_on: vec!["nonexistent".to_string()],
                 params: TaskParams::default(),
+                input_from: HashMap::new(),
                 timeout_secs: None,
                 max_retries: None,
             }],
@@ -344,6 +370,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec![],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -352,6 +379,7 @@ mod tests {
                     task_type: TaskType::new("work").unwrap(),
                     depends_on: vec![],
                     params: TaskParams::default(),
+                    input_from: HashMap::new(),
                     timeout_secs: None,
                     max_retries: None,
                 },
@@ -386,5 +414,72 @@ mod tests {
         let json = serde_json::to_string(&params).unwrap();
         let back: TaskParams = serde_json::from_str(&json).unwrap();
         assert_eq!(back.entries.get("source").unwrap(), "billing-api");
+    }
+
+    #[test]
+    fn input_from_ref_must_be_in_depends_on() {
+        let mut input_from = HashMap::new();
+        input_from.insert("url".to_string(), "fetch.data.url".to_string());
+
+        let def = JobDefinition {
+            v: 1,
+            name: "Bad Ref".to_string(),
+            job_type: "bad-ref".to_string(),
+            tasks: vec![
+                TaskDefinition {
+                    name: "fetch".to_string(),
+                    task_type: TaskType::new("work").unwrap(),
+                    depends_on: vec![],
+                    params: TaskParams::default(),
+                    input_from: HashMap::new(),
+                    timeout_secs: None,
+                    max_retries: None,
+                },
+                TaskDefinition {
+                    name: "consume".to_string(),
+                    task_type: TaskType::new("work").unwrap(),
+                    depends_on: vec![],
+                    params: TaskParams::default(),
+                    input_from,
+                    timeout_secs: None,
+                    max_retries: None,
+                },
+            ],
+        };
+        let err = def.validate().unwrap_err();
+        assert!(err.to_string().contains("not in depends_on"));
+    }
+
+    #[test]
+    fn input_from_valid_when_ref_in_depends_on() {
+        let mut input_from = HashMap::new();
+        input_from.insert("url".to_string(), "fetch.data.url".to_string());
+
+        let def = JobDefinition {
+            v: 1,
+            name: "Good Ref".to_string(),
+            job_type: "good-ref".to_string(),
+            tasks: vec![
+                TaskDefinition {
+                    name: "fetch".to_string(),
+                    task_type: TaskType::new("work").unwrap(),
+                    depends_on: vec![],
+                    params: TaskParams::default(),
+                    input_from: HashMap::new(),
+                    timeout_secs: None,
+                    max_retries: None,
+                },
+                TaskDefinition {
+                    name: "consume".to_string(),
+                    task_type: TaskType::new("work").unwrap(),
+                    depends_on: vec!["fetch".to_string()],
+                    params: TaskParams::default(),
+                    input_from,
+                    timeout_secs: None,
+                    max_retries: None,
+                },
+            ],
+        };
+        assert!(def.validate().is_ok());
     }
 }

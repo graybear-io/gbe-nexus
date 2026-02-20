@@ -5,6 +5,9 @@ pub enum TaskOutcome {
     Completed {
         output: Vec<String>,
         result_ref: Option<String>,
+        /// Structured output for downstream consumption via `input_from`.
+        #[serde(default)]
+        data: Option<serde_json::Value>,
     },
     Failed {
         exit_code: i32,
@@ -21,13 +24,19 @@ mod tests {
         let outcome = TaskOutcome::Completed {
             output: vec!["row1".to_string(), "row2".to_string()],
             result_ref: Some("s3://bucket/output.csv".to_string()),
+            data: Some(serde_json::json!({"rows": 2})),
         };
         let json = serde_json::to_string(&outcome).unwrap();
         let back: TaskOutcome = serde_json::from_str(&json).unwrap();
         match back {
-            TaskOutcome::Completed { output, result_ref } => {
+            TaskOutcome::Completed {
+                output,
+                result_ref,
+                data,
+            } => {
                 assert_eq!(output.len(), 2);
                 assert_eq!(result_ref.unwrap(), "s3://bucket/output.csv");
+                assert_eq!(data.unwrap()["rows"], 2);
             }
             _ => panic!("expected Completed"),
         }
