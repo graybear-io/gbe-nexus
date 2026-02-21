@@ -52,6 +52,10 @@ pub struct TaskParams {
 
 impl JobDefinition {
     /// Validate the DAG: no duplicate names, all dependency refs exist, no cycles.
+    ///
+    /// # Errors
+    /// Returns `JobsDomainError` if the DAG has no tasks, duplicate names,
+    /// unknown dependencies, invalid `input_from` refs, or cycles.
     pub fn validate(&self) -> Result<(), JobsDomainError> {
         if self.tasks.is_empty() {
             return Err(JobsDomainError::ValidationFailed(
@@ -134,6 +138,9 @@ impl JobDefinition {
     }
 
     /// Return task names in topological order (roots first).
+    ///
+    /// # Errors
+    /// Returns `JobsDomainError` if the DAG fails validation.
     pub fn topological_order(&self) -> Result<Vec<&str>, JobsDomainError> {
         self.validate()?;
 
@@ -169,6 +176,7 @@ impl JobDefinition {
     }
 
     /// Return task names that have no dependencies (DAG roots).
+    #[must_use]
     pub fn roots(&self) -> Vec<&str> {
         self.tasks
             .iter()

@@ -22,6 +22,8 @@ pub struct RedisTransport {
 }
 
 impl RedisTransport {
+    /// # Errors
+    /// Returns `TransportError::Connection` if the Redis connection fails.
     pub async fn connect(config: RedisTransportConfig) -> Result<Self, TransportError> {
         let client = redis::Client::open(config.url.as_str())
             .map_err(|e| TransportError::Connection(e.to_string()))?;
@@ -43,9 +45,10 @@ impl RedisTransport {
     }
 
     fn consumer_id() -> String {
-        let host = hostname::get()
-            .map(|h| h.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "unknown".to_string());
+        let host = hostname::get().map_or_else(
+            |_| "unknown".to_string(),
+            |h| h.to_string_lossy().to_string(),
+        );
         format!("{host}-{}", ulid::Ulid::new())
     }
 }
@@ -140,6 +143,7 @@ impl gbe_nexus::Transport for RedisTransport {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
     async fn trim_stream(&self, subject: &str, max_age: Duration) -> Result<u64, TransportError> {
         self.check_closed()?;
         let key = subject_to_key(subject);

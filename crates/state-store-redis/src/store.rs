@@ -8,7 +8,7 @@ use gbe_state_store::{Record, ScanFilter, ScanOp, StateStoreConfig, StateStoreEr
 
 use crate::error::map_redis_err;
 
-const CAS_SCRIPT: &str = r#"
+const CAS_SCRIPT: &str = r"
 local cur = redis.call('HGET', KEYS[1], ARGV[1])
 if cur == ARGV[2] then
     redis.call('HSET', KEYS[1], ARGV[1], ARGV[3])
@@ -16,7 +16,7 @@ if cur == ARGV[2] then
 else
     return 0
 end
-"#;
+";
 
 pub struct RedisStateStore {
     conn: redis::aio::ConnectionManager,
@@ -24,6 +24,8 @@ pub struct RedisStateStore {
 }
 
 impl RedisStateStore {
+    /// # Errors
+    /// Returns `StateStoreError::Connection` if the Redis connection fails.
     pub async fn connect(config: StateStoreConfig) -> Result<Self, StateStoreError> {
         let client = redis::Client::open(config.url.as_str())
             .map_err(|e| StateStoreError::Connection(e.to_string()))?;
@@ -95,7 +97,7 @@ impl gbe_state_store::StateStore for RedisStateStore {
         if let Some(ttl) = ttl {
             redis::cmd("EXPIRE")
                 .arg(key)
-                .arg(ttl.as_secs() as i64)
+                .arg(ttl.as_secs().cast_signed())
                 .query_async::<()>(&mut conn)
                 .await
                 .map_err(map_redis_err)?;

@@ -29,6 +29,8 @@ pub struct SweepReport {
 }
 
 impl Watcher {
+    /// # Errors
+    /// Returns `WatcherError` if the distributed lock connection fails.
     pub async fn new(
         config: WatcherConfig,
         transport: Arc<dyn Transport>,
@@ -49,6 +51,8 @@ impl Watcher {
         })
     }
 
+    /// # Errors
+    /// Returns `WatcherError` if a sweep or lock operation fails fatally.
     pub async fn run(&self, token: CancellationToken) -> Result<(), WatcherError> {
         loop {
             tokio::select! {
@@ -88,6 +92,8 @@ impl Watcher {
         }
     }
 
+    /// # Errors
+    /// Returns `WatcherError` if state store or transport operations fail.
     pub async fn sweep_once(&self) -> Result<SweepReport, WatcherError> {
         let mut report = SweepReport::default();
 
@@ -98,6 +104,8 @@ impl Watcher {
     }
 
     async fn detect_stuck_jobs(&self, report: &mut SweepReport) -> Result<(), WatcherError> {
+        // Safety: stuck_threshold is a Duration with millis that fit in u64
+        #[allow(clippy::cast_possible_truncation)]
         let threshold = now_millis().saturating_sub(self.config.stuck_threshold.as_millis() as u64);
         let threshold_str = threshold.to_string();
 
@@ -150,6 +158,8 @@ impl Watcher {
         retry_count: u32,
     ) -> Result<(), WatcherError> {
         let now = now_millis();
+        // Safety: stuck_threshold is a Duration with millis that fit in u64
+        #[allow(clippy::cast_possible_truncation)]
         let timeout_at = now + self.config.stuck_threshold.as_millis() as u64;
 
         let mut updates = HashMap::new();
@@ -243,6 +253,7 @@ fn extract_task_type(key: &str) -> Option<&str> {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
 fn now_millis() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

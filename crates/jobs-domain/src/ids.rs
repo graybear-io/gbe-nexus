@@ -20,6 +20,8 @@ macro_rules! validated_id {
         pub struct $name(String);
 
         impl $name {
+            /// # Errors
+            /// Returns an error if `raw` is not a valid prefixed identifier.
             pub fn new(raw: &str) -> Result<Self, JobsDomainError> {
                 if !is_valid_prefixed_id(raw, $prefix) {
                     return Err(JobsDomainError::$err(raw.to_string()));
@@ -70,6 +72,8 @@ validated_id!(OrgId, "org_", InvalidOrgId);
 pub struct TaskType(String);
 
 impl TaskType {
+    /// # Errors
+    /// Returns `JobsDomainError::InvalidTaskType` if the slug is invalid.
     pub fn new(raw: &str) -> Result<Self, JobsDomainError> {
         if raw.is_empty()
             || raw.len() > 48
@@ -84,6 +88,7 @@ impl TaskType {
         Ok(Self(raw.to_string()))
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }

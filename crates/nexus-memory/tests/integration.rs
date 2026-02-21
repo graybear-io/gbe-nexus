@@ -274,6 +274,7 @@ async fn test_close_prevents_operations() {
 }
 
 #[tokio::test]
+#[allow(clippy::items_after_statements)]
 async fn test_trace_id_propagation() {
     let transport = create_transport();
     let subject = test_subject("trace");
@@ -528,6 +529,7 @@ async fn test_multiple_groups_see_same_messages() {
 }
 
 #[tokio::test]
+#[allow(clippy::items_after_statements)]
 async fn test_backpressure_max_inflight() {
     let transport = create_transport();
     let subject = test_subject("backpressure");

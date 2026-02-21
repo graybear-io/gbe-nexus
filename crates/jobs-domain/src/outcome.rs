@@ -1,5 +1,5 @@
 /// Outcome reported by an operative after executing a task.
-/// Published on the terminal stream: gbe.tasks.{task_type}.terminal
+/// Published on the terminal stream: `gbe.tasks.{task_type}.terminal`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TaskOutcome {
     Completed {
@@ -38,7 +38,7 @@ mod tests {
                 assert_eq!(result_ref.unwrap(), "s3://bucket/output.csv");
                 assert_eq!(data.unwrap()["rows"], 2);
             }
-            _ => panic!("expected Completed"),
+            TaskOutcome::Failed { .. } => panic!("expected Completed"),
         }
     }
 
@@ -55,7 +55,7 @@ mod tests {
                 assert_eq!(exit_code, 1);
                 assert_eq!(error, "connection timeout");
             }
-            _ => panic!("expected Failed"),
+            TaskOutcome::Completed { .. } => panic!("expected Failed"),
         }
     }
 }

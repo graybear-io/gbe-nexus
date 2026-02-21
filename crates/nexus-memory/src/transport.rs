@@ -35,6 +35,7 @@ pub struct MemoryTransport {
 }
 
 impl MemoryTransport {
+    #[must_use]
     pub fn new(config: MemoryTransportConfig) -> Self {
         Self {
             store: Arc::new(Mutex::new(StreamStore::new())),
@@ -153,6 +154,7 @@ impl gbe_nexus::Transport for MemoryTransport {
         Ok(())
     }
 
+    #[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
     async fn trim_stream(&self, subject: &str, max_age: Duration) -> Result<u64, TransportError> {
         self.check_closed()?;
 
@@ -163,9 +165,8 @@ impl gbe_nexus::Transport for MemoryTransport {
         let cutoff_ms = now_ms.saturating_sub(max_age.as_millis() as u64);
 
         let mut store = self.store.lock().await;
-        let stream = match store.streams.get_mut(subject) {
-            Some(s) => s,
-            None => return Ok(0),
+        let Some(stream) = store.streams.get_mut(subject) else {
+            return Ok(0);
         };
 
         // Count messages at the front that are expired

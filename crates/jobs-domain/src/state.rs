@@ -12,21 +12,25 @@ pub enum JobState {
 }
 
 impl JobState {
+    #[must_use]
     pub fn can_transition_to(self, next: Self) -> bool {
         matches!(
             (self, next),
-            (Self::Pending, Self::Running)
-                | (Self::Running, Self::Completed)
-                | (Self::Running, Self::Failed)
-                | (Self::Pending, Self::Cancelled)
-                | (Self::Running, Self::Cancelled)
+            (Self::Pending, Self::Running | Self::Cancelled)
+                | (
+                    Self::Running,
+                    Self::Completed | Self::Failed | Self::Cancelled
+                )
         )
     }
 
+    #[must_use]
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Completed | Self::Failed | Self::Cancelled)
     }
 
+    /// # Errors
+    /// Returns `JobsDomainError::InvalidTransition` if the transition is not allowed.
     pub fn transition_to(self, next: Self) -> Result<Self, JobsDomainError> {
         if self.can_transition_to(next) {
             Ok(next)
@@ -38,6 +42,7 @@ impl JobState {
         }
     }
 
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Pending => "pending",
@@ -71,30 +76,29 @@ pub enum TaskState {
 }
 
 impl TaskState {
+    #[must_use]
     pub fn can_transition_to(self, next: Self) -> bool {
         matches!(
             (self, next),
             // Normal flow
-            (Self::Blocked, Self::Pending)
-                | (Self::Pending, Self::Claimed)
-                | (Self::Claimed, Self::Running)
-                | (Self::Running, Self::Completed)
-                | (Self::Running, Self::Failed)
-                // Watcher retries (claim timeout or execution timeout)
-                | (Self::Claimed, Self::Pending)
-                | (Self::Running, Self::Pending)
-                // Cancel from any non-terminal
+            (Self::Blocked | Self::Claimed | Self::Running, Self::Pending)
+                | (Self::Pending, Self::Claimed | Self::Cancelled)
+                | (Self::Claimed, Self::Running | Self::Cancelled)
+                | (
+                    Self::Running,
+                    Self::Completed | Self::Failed | Self::Cancelled
+                )
                 | (Self::Blocked, Self::Cancelled)
-                | (Self::Pending, Self::Cancelled)
-                | (Self::Claimed, Self::Cancelled)
-                | (Self::Running, Self::Cancelled)
         )
     }
 
+    #[must_use]
     pub fn is_terminal(self) -> bool {
         matches!(self, Self::Completed | Self::Failed | Self::Cancelled)
     }
 
+    /// # Errors
+    /// Returns `JobsDomainError::InvalidTransition` if the transition is not allowed.
     pub fn transition_to(self, next: Self) -> Result<Self, JobsDomainError> {
         if self.can_transition_to(next) {
             Ok(next)
@@ -106,6 +110,7 @@ impl TaskState {
         }
     }
 
+    #[must_use]
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Blocked => "blocked",

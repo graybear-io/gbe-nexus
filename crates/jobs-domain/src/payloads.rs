@@ -6,7 +6,7 @@ use crate::ids::{JobId, OrgId, TaskId, TaskType};
 // Wrap in DomainPayload<T> from gbe-nexus before publishing.
 
 /// Job created with all tasks.
-/// Subject: gbe.jobs.{job_type}.created
+/// Subject: `gbe.jobs.{job_type}.created`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JobCreated {
     pub job_id: JobId,
@@ -19,7 +19,7 @@ pub struct JobCreated {
 }
 
 /// All tasks completed successfully.
-/// Subject: gbe.jobs.{job_type}.completed
+/// Subject: `gbe.jobs.{job_type}.completed`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JobCompleted {
     pub job_id: JobId,
@@ -30,7 +30,7 @@ pub struct JobCompleted {
 }
 
 /// Job failed terminally (task exhausted retries).
-/// Subject: gbe.jobs.{job_type}.failed
+/// Subject: `gbe.jobs.{job_type}.failed`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JobFailed {
     pub job_id: JobId,
@@ -42,7 +42,7 @@ pub struct JobFailed {
 }
 
 /// Job cancelled externally.
-/// Subject: gbe.jobs.{job_type}.cancelled
+/// Subject: `gbe.jobs.{job_type}.cancelled`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct JobCancelled {
     pub job_id: JobId,
@@ -57,7 +57,7 @@ pub struct JobCancelled {
 // Wrap in DomainPayload<T> from gbe-nexus before publishing.
 
 /// Task is ready for a worker to claim.
-/// Subject: gbe.tasks.{task_type}.queue
+/// Subject: `gbe.tasks.{task_type}.queue`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TaskQueued {
     pub task_id: TaskId,
@@ -69,7 +69,7 @@ pub struct TaskQueued {
 }
 
 /// Worker step progress update.
-/// Subject: gbe.tasks.{task_type}.progress
+/// Subject: `gbe.tasks.{task_type}.progress`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TaskProgress {
     pub task_id: TaskId,
@@ -80,7 +80,7 @@ pub struct TaskProgress {
 }
 
 /// Task completed successfully.
-/// Subject: gbe.tasks.{task_type}.terminal
+/// Subject: `gbe.tasks.{task_type}.terminal`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TaskCompleted {
     pub task_id: TaskId,
@@ -91,7 +91,7 @@ pub struct TaskCompleted {
 }
 
 /// Task failed (retries may remain).
-/// Subject: gbe.tasks.{task_type}.terminal
+/// Subject: `gbe.tasks.{task_type}.terminal`
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TaskFailed {
     pub task_id: TaskId,
@@ -119,7 +119,7 @@ mod tests {
                 TaskId::new("task_b").unwrap(),
                 TaskId::new("task_c").unwrap(),
             ],
-            created_at: 1707934567000,
+            created_at: 1_707_934_567_000,
             definition_ref: None,
         };
         let json = serde_json::to_string(&payload).unwrap();
@@ -155,7 +155,7 @@ mod tests {
             task_id: TaskId::new("task_send-1").unwrap(),
             job_id: JobId::new("job_daily-001").unwrap(),
             task_type: TaskType::new("email-send").unwrap(),
-            failed_at: 1707934600000,
+            failed_at: 1_707_934_600_000,
             error: "smtp timeout".to_string(),
             retry_count: 2,
             max_retries: 3,
@@ -172,7 +172,7 @@ mod tests {
             job_id: JobId::new("job_done-1").unwrap(),
             org_id: OrgId::new("org_test").unwrap(),
             job_type: "daily-report".to_string(),
-            completed_at: 1707935000000,
+            completed_at: 1_707_935_000_000,
             result_ref: Some("s3://results/job_done-1.json".to_string()),
         };
         let json = serde_json::to_string(&payload).unwrap();

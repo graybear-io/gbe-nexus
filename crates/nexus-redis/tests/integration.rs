@@ -1,9 +1,9 @@
 //! Integration tests for the Redis Streams transport backend.
 //!
-//! Requires a running Redis instance. Set REDIS_URL to enable these tests.
-//! Default: redis://127.0.0.1:6379
+//! Requires a running Redis instance. Set `REDIS_URL` to enable these tests.
+//! Default: <redis://127.0.0.1:6379>
 //!
-//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-nexus-redis
+//! Run with: `REDIS_URL=redis://localhost:6379` cargo test --package gbe-nexus-redis
 
 use async_trait::async_trait;
 use bytes::Bytes;
@@ -324,6 +324,7 @@ async fn test_close_prevents_operations() {
 }
 
 #[tokio::test]
+#[allow(clippy::items_after_statements)]
 async fn test_trace_id_propagation() {
     if redis_url().is_none() {
         return;

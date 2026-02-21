@@ -1,5 +1,6 @@
 use gbe_nexus::TransportError;
 
+#[allow(clippy::needless_pass_by_value)] // signature required for use with .map_err()
 pub(crate) fn map_redis_err(e: redis::RedisError) -> TransportError {
     use redis::ErrorKind;
     match e.kind() {

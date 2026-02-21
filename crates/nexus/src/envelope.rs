@@ -26,6 +26,9 @@ pub struct Envelope {
 }
 
 impl Envelope {
+    /// # Panics
+    /// Panics if the system clock is before the Unix epoch.
+    #[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
     pub fn new(subject: String, payload: Bytes, trace_id: Option<String>) -> Self {
         let id = ulid::Ulid::new();
         let ts = std::time::SystemTime::now()

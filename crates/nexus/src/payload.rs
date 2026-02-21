@@ -22,6 +22,10 @@ pub struct DomainPayload<T> {
 
 impl<T: Serialize> DomainPayload<T> {
     /// Create a new domain payload, setting `ts` to now.
+    ///
+    /// # Panics
+    /// Panics if the system clock is before the Unix epoch.
+    #[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
     pub fn new(v: u32, id: impl Into<String>, data: T) -> Self {
         let ts = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -37,6 +41,9 @@ impl<T: Serialize> DomainPayload<T> {
     }
 
     /// Serialize to bytes for transport publication.
+    ///
+    /// # Errors
+    /// Returns a `serde_json::Error` if serialization fails.
     pub fn to_bytes(&self) -> Result<Bytes, serde_json::Error> {
         serde_json::to_vec(self).map(Bytes::from)
     }
@@ -44,6 +51,9 @@ impl<T: Serialize> DomainPayload<T> {
 
 impl<T: DeserializeOwned> DomainPayload<T> {
     /// Deserialize from transport payload bytes.
+    ///
+    /// # Errors
+    /// Returns a `serde_json::Error` if deserialization fails.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, serde_json::Error> {
         serde_json::from_slice(bytes)
     }
@@ -101,6 +111,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cast_possible_truncation)]
     fn ts_auto_set_to_now() {
         let before = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

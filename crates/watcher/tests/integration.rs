@@ -1,7 +1,7 @@
 //! Integration tests for the watcher and archiver.
 //!
-//! Requires a running Redis instance. Set REDIS_URL to enable these tests.
-//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-watcher
+//! Requires a running Redis instance. Set `REDIS_URL` to enable these tests.
+//! Run with: `REDIS_URL=redis://localhost:6379` cargo test --package gbe-watcher
 
 use bytes::Bytes;
 use flate2::read::GzDecoder;
@@ -57,6 +57,7 @@ async fn cleanup_keys(keys: &[&str]) {
     }
 }
 
+#[allow(clippy::cast_possible_truncation)] // millis since epoch fits in u64 until year 584556
 fn now_millis() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -517,7 +518,7 @@ async fn test_archive_batch_writes_jsonl_gz() {
     let mut jsonl = String::new();
     decoder.read_to_string(&mut jsonl).unwrap();
 
-    let lines: Vec<&str> = jsonl.trim().split('\n').collect();
+    let lines: Vec<&str> = jsonl.lines().collect();
     assert_eq!(lines.len(), 3);
 
     // Each line should be valid JSON with envelope fields

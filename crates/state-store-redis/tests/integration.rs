@@ -1,9 +1,9 @@
 //! Integration tests for the Redis KV state store backend.
 //!
-//! Requires a running Redis instance. Set REDIS_URL to enable these tests.
-//! Default: redis://127.0.0.1:6379
+//! Requires a running Redis instance. Set `REDIS_URL` to enable these tests.
+//! Default: <redis://127.0.0.1:6379>
 //!
-//! Run with: REDIS_URL=redis://localhost:6379 cargo test --package gbe-state-store-redis
+//! Run with: `REDIS_URL=redis://localhost:6379` cargo test --package gbe-state-store-redis
 
 use bytes::Bytes;
 use std::collections::HashMap;
@@ -251,9 +251,9 @@ async fn test_scan_with_prefix() {
     let results = store.scan(&prefix, None).await.unwrap();
     assert_eq!(results.len(), 2);
 
-    let keys: Vec<&String> = results.iter().map(|(k, _)| k).collect();
-    assert!(keys.contains(&&key1));
-    assert!(keys.contains(&&key2));
+    let found_keys: Vec<&String> = results.iter().map(|(k, _)| k).collect();
+    assert!(found_keys.contains(&&key1));
+    assert!(found_keys.contains(&&key2));
 
     cleanup_keys(&[&key1, &key2, &decoy]).await;
 }

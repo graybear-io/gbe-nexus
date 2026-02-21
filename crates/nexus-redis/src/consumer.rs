@@ -34,6 +34,8 @@ pub(crate) async fn run_consumer_loop(mut p: ConsumerParams) {
         return;
     }
 
+    // Safety: ack_timeout is a Duration, millis fit in u64 for any practical timeout
+    #[allow(clippy::cast_possible_truncation)]
     let ack_timeout_ms = p.opts.ack_timeout.as_millis() as u64;
     let mut last_reclaim = Instant::now();
     let reclaim_interval = p.opts.ack_timeout / 2;
@@ -148,6 +150,8 @@ async fn get_pending_count(
     if let redis::Value::Array(arr) = &result
         && let Some(redis::Value::Int(count)) = arr.first()
     {
+        // XPENDING count is non-negative; truncation only on 32-bit (impractical)
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         return Ok(*count as usize);
     }
     Ok(0)
@@ -243,7 +247,7 @@ async fn process_entry(
     }
 }
 
-/// Parse a raw Redis Value into (entry_id, field_map) for XAUTOCLAIM results.
+/// Parse a raw Redis Value into (`entry_id`, `field_map`) for XAUTOCLAIM results.
 fn parse_stream_entry(
     val: &redis::Value,
 ) -> Option<(String, std::collections::HashMap<String, String>)> {

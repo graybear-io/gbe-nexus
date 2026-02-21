@@ -45,9 +45,9 @@ pub(crate) async fn run_consumer_loop(params: ConsumerParams) {
 
         if batch.is_empty() {
             tokio::select! {
-                _ = notified => {}
-                _ = token.cancelled() => break,
-                _ = tokio::time::sleep(Duration::from_millis(100)) => {}
+                () = notified => {}
+                () = token.cancelled() => break,
+                () = tokio::time::sleep(Duration::from_millis(100)) => {}
             }
             continue;
         }
@@ -84,14 +84,12 @@ async fn collect_batch(
     let mut store = store.lock().await;
     let batch_size = opts.batch_size as usize;
 
-    let stream = match store.streams.get_mut(subject) {
-        Some(s) => s,
-        None => return Vec::new(),
+    let Some(stream) = store.streams.get_mut(subject) else {
+        return Vec::new();
     };
 
-    let consumer_group = match stream.groups.get_mut(group) {
-        Some(g) => g,
-        None => return Vec::new(),
+    let Some(consumer_group) = stream.groups.get_mut(group) else {
+        return Vec::new();
     };
 
     // Backpressure: skip if too many pending
@@ -106,9 +104,8 @@ async fn collect_batch(
 
     // Phase 1: redeliver nak'd messages first
     while batch.len() < take {
-        let msg_id = match consumer_group.redeliver.pop_front() {
-            Some(id) => id,
-            None => break,
+        let Some(msg_id) = consumer_group.redeliver.pop_front() else {
+            break;
         };
         // Find the message by ID
         if let Some(&idx) = stream.id_index.get(&msg_id) {

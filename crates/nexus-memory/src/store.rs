@@ -13,7 +13,7 @@ pub(crate) struct StreamStore {
 pub(crate) struct StreamData {
     /// Messages in insertion order. Index is the cursor position.
     pub messages: Vec<Envelope>,
-    /// Quick lookup: message_id -> index in messages vec.
+    /// Quick lookup: `message_id` -> index in messages vec.
     pub id_index: HashMap<String, usize>,
     pub groups: HashMap<String, ConsumerGroup>,
     pub config: Option<StreamConfig>,

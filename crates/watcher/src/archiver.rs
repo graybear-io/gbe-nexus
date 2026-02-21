@@ -64,6 +64,8 @@ pub struct Archiver {
 }
 
 impl Archiver {
+    /// # Errors
+    /// Returns `WatcherError::Redis` if the Redis connection fails.
     pub async fn new(
         config: ArchiverConfig,
         writer: Arc<dyn ArchiveWriter>,
@@ -75,9 +77,10 @@ impl Archiver {
             .await
             .map_err(|e| WatcherError::Redis(e.to_string()))?;
 
-        let host = hostname::get()
-            .map(|h| h.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "unknown".to_string());
+        let host = hostname::get().map_or_else(
+            |_| "unknown".to_string(),
+            |h| h.to_string_lossy().to_string(),
+        );
         let consumer_id = format!("{host}-{}", ulid::Ulid::new());
 
         Ok(Self {
@@ -89,10 +92,13 @@ impl Archiver {
         })
     }
 
+    #[must_use]
     pub fn config(&self) -> &ArchiverConfig {
         &self.config
     }
 
+    /// # Errors
+    /// Returns `WatcherError` if a batch processing or stream operation fails.
     pub async fn run(&self, token: CancellationToken) -> Result<(), WatcherError> {
         for stream in &self.config.streams {
             self.ensure_group(&subject_to_key(&stream.subject)).await?;
@@ -133,6 +139,10 @@ impl Archiver {
         }
     }
 
+    /// # Errors
+    /// Returns `WatcherError` if reading, compressing, writing, or acking fails.
+    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::cast_possible_truncation)] // batch sizes are small, usize->u32 is safe
     pub async fn process_batch(
         &self,
         stream: &ArchivalStream,
@@ -287,7 +297,7 @@ fn subject_to_key(subject: &str) -> String {
 fn make_archive_path(domain: &str) -> String {
     let now = chrono_free_date();
     let batch_id = ulid::Ulid::new().to_string().to_lowercase();
-    format!("{domain}/{}/{batch_id}.jsonl.gz", now)
+    format!("{domain}/{now}/{batch_id}.jsonl.gz")
 }
 
 /// Date path component without chrono dependency.
@@ -305,10 +315,10 @@ fn chrono_free_date() -> String {
 
 fn days_to_ymd(days: u64) -> (u64, u64, u64) {
     // Algorithm from https://howardhinnant.github.io/date_algorithms.html
-    let z = days + 719468;
-    let era = z / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
     let y = yoe + era * 400;
     let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
     let mp = (5 * doy + 2) / 153;

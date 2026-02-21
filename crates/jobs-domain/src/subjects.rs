@@ -3,37 +3,45 @@
 /// Job lifecycle subjects are new (`gbe.jobs.*`).
 /// Task subjects reuse the existing hierarchy (`gbe.tasks.*`).
 pub mod jobs {
+    #[must_use]
     pub fn created(job_type: &str) -> String {
         format!("gbe.jobs.{job_type}.created")
     }
 
+    #[must_use]
     pub fn completed(job_type: &str) -> String {
         format!("gbe.jobs.{job_type}.completed")
     }
 
+    #[must_use]
     pub fn failed(job_type: &str) -> String {
         format!("gbe.jobs.{job_type}.failed")
     }
 
+    #[must_use]
     pub fn cancelled(job_type: &str) -> String {
         format!("gbe.jobs.{job_type}.cancelled")
     }
 
     /// Wildcard for all events of a job type (NATS-compatible).
+    #[must_use]
     pub fn all(job_type: &str) -> String {
         format!("gbe.jobs.{job_type}.*")
     }
 }
 
 pub mod tasks {
+    #[must_use]
     pub fn queue(task_type: &str) -> String {
         format!("gbe.tasks.{task_type}.queue")
     }
 
+    #[must_use]
     pub fn progress(task_type: &str) -> String {
         format!("gbe.tasks.{task_type}.progress")
     }
 
+    #[must_use]
     pub fn terminal(task_type: &str) -> String {
         format!("gbe.tasks.{task_type}.terminal")
     }
