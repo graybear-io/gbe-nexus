@@ -47,6 +47,40 @@ pub mod tasks {
     }
 }
 
+pub mod lifecycle {
+    #[must_use]
+    pub fn started(component: &str) -> String {
+        format!("gbe.events.lifecycle.{component}.started")
+    }
+
+    #[must_use]
+    pub fn stopped(component: &str) -> String {
+        format!("gbe.events.lifecycle.{component}.stopped")
+    }
+
+    #[must_use]
+    pub fn heartbeat(component: &str) -> String {
+        format!("gbe.events.lifecycle.{component}.heartbeat")
+    }
+
+    #[must_use]
+    pub fn degraded(component: &str) -> String {
+        format!("gbe.events.lifecycle.{component}.degraded")
+    }
+
+    /// Wildcard for all lifecycle events of a component (NATS-compatible).
+    #[must_use]
+    pub fn all(component: &str) -> String {
+        format!("gbe.events.lifecycle.{component}.*")
+    }
+
+    /// Wildcard for all lifecycle events across all components.
+    #[must_use]
+    pub fn all_components() -> String {
+        "gbe.events.lifecycle.*.*".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -80,5 +114,30 @@ mod tests {
             tasks::terminal("email-send"),
             "gbe.tasks.email-send.terminal"
         );
+    }
+
+    #[test]
+    fn lifecycle_subjects() {
+        assert_eq!(
+            lifecycle::started("operative"),
+            "gbe.events.lifecycle.operative.started"
+        );
+        assert_eq!(
+            lifecycle::stopped("oracle"),
+            "gbe.events.lifecycle.oracle.stopped"
+        );
+        assert_eq!(
+            lifecycle::heartbeat("sentinel"),
+            "gbe.events.lifecycle.sentinel.heartbeat"
+        );
+        assert_eq!(
+            lifecycle::degraded("watcher"),
+            "gbe.events.lifecycle.watcher.degraded"
+        );
+        assert_eq!(
+            lifecycle::all("operative"),
+            "gbe.events.lifecycle.operative.*"
+        );
+        assert_eq!(lifecycle::all_components(), "gbe.events.lifecycle.*.*");
     }
 }
